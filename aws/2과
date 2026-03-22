@@ -1,0 +1,51 @@
+📂 1. Shared network storage (공유 네트워크 스토리지)
+여러 대의 EC2 인스턴스가 동시에 하나의 스토리지를 바라보고 파일을 읽고 쓸 수 있게 만드는 과제입니다.
+
+사용할 서비스: Amazon EFS (Elastic File System)
+
+핵심 구축 단계:
+
+EFS 파일 시스템 생성: VPC 내에 EFS를 생성하고, EC2들이 있는 서브넷에 '탑재 대상(Mount Target)'을 만듭니다.
+
+보안 그룹(SG) 설정: EC2 인스턴스의 보안 그룹에서 EFS로 향하는 NFS 포트(TCP 2049) 접근을 허용해야 합니다.
+
+EC2 마운트: 각 EC2에 접속하여 amazon-efs-utils 패키지를 설치하고, EFS 마운트 명령어(mount -t efs...)를 실행하여 디렉터리를 연결합니다. 재부팅 시에도 유지되도록 /etc/fstab에 등록하는 것이 중요합니다.
+
+🔍 2. Query from S3 (S3 데이터 쿼리)
+데이터베이스(RDS 등)에 데이터를 넣지 않고, S3에 저장된 원본 파일(CSV, JSON 등)을 직접 SQL문으로 검색하는 과제입니다.
+
+사용할 서비스: Amazon Athena, Amazon S3
+
+핵심 구축 단계:
+
+S3 버킷 준비: 쿼리할 원본 데이터 파일이 들어있는 버킷과, Athena의 쿼리 결과가 저장될 결과용 버킷을 준비합니다.
+
+Athena 테이블 생성: Athena 콘솔에서 S3 버킷 경로를 지정하고 데이터 형식(CSV, JSON 등)에 맞춰 컬럼명과 타입을 정의하는 CREATE EXTERNAL TABLE 쿼리를 실행합니다.
+
+데이터 쿼리: 테이블이 생성되면 표준 SQL문(SELECT * FROM...)을 사용해 S3 데이터를 즉시 조회할 수 있습니다.
+
+🔐 3. Fine-grained IAM policy (세밀한 IAM 정책)
+'모든 권한 허용(*)' 같은 위험한 설정 대신, 딱 필요한 자원에 딱 필요한 행동만 할 수 있도록 권한을 쪼개서 부여하는 과제입니다.
+
+사용할 서비스: AWS IAM (Identity and Access Management)
+
+핵심 구축 단계:
+
+JSON 정책 작성: IAM 정책 생성기나 직접 JSON을 편집하여 정책을 만듭니다.
+
+Action 제한: 예를 들어 S3 전체가 아니라 읽기만 허용하려면 "Action": ["s3:GetObject", "s3:ListBucket"] 처럼 구체적으로 적습니다.
+
+Resource 제한: 모든 버킷이 아니라 특정 버킷만 허용하려면 "Resource": "arn:aws:s3:::my-specific-bucket/*" 처럼 ARN을 명시해야 합니다. (이 부분이 가장 중요하게 채점됩니다.)
+
+⚡ 4. MySQL with Lambda (Lambda와 MySQL 연동)
+서버리스 컴퓨팅인 Lambda 함수를 실행시켰을 때, RDS에 있는 MySQL 데이터베이스에 접속해서 데이터를 가져오거나 수정하는 과제입니다.
+
+사용할 서비스: AWS Lambda, Amazon RDS, VPC
+
+핵심 구축 단계:
+
+네트워크 설정 (가장 중요): 기본적으로 Lambda는 VPC 외부에 있습니다. RDS(보통 프라이빗 서브넷에 위치)에 접속하려면 Lambda의 설정에서 VPC, 서브넷, 보안 그룹을 RDS와 통신이 가능하도록 연결해 주어야 합니다.
+
+라이브러리 패키징: Python을 쓴다면 MySQL에 접속하기 위한 pymysql 같은 라이브러리가 필요합니다. 이를 Lambda Layer로 만들거나, 코드와 함께 압축(.zip)해서 업로드해야 합니다.
+
+코드 작성: Secrets Manager나 환경 변수에서 DB 접속 정보를 불러와 MySQL에 연결하고 쿼리를 실행하는 코드를 작성합니다.
