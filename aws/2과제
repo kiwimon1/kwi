@@ -49,3 +49,60 @@ Resource 제한: 모든 버킷이 아니라 특정 버킷만 허용하려면 "Re
 라이브러리 패키징: Python을 쓴다면 MySQL에 접속하기 위한 pymysql 같은 라이브러리가 필요합니다. 이를 Lambda Layer로 만들거나, 코드와 함께 압축(.zip)해서 업로드해야 합니다.
 
 코드 작성: Secrets Manager나 환경 변수에서 DB 접속 정보를 불러와 MySQL에 연결하고 쿼리를 실행하는 코드를 작성합니다.
+
+////////////////////////////////////
+[문제 1] Shared network storage (공유 네트워크 스토리지)
+상황: 웹 팀에서 여러 대의 EC2 인스턴스가 동일한 이미지 파일 디렉터리를 실시간으로 공유하고 읽고 쓸 수 있는 스토리지를 요구하고 있습니다.
+요구사항:
+
+리전: ap-northeast-2 (서울)
+
+주어진 <VPC_A> 내에 Amazon EFS 파일 시스템을 생성하시오.
+
+미리 생성된 2대의 EC2 인스턴스(Amazon Linux 2023)가 EFS에 접근할 수 있도록 적절한 보안 그룹(Security Group) 규칙(NFS 포트)을 구성하시오.
+
+각 EC2 인스턴스에 접속하여 /mnt/shared-data 디렉터리에 EFS를 마운트 하시오.
+
+[채점 기준] 인스턴스가 재부팅되더라도 EFS가 자동으로 마운트되도록 /etc/fstab을 올바르게 설정해야 합니다.
+
+[문제 2] Query from S3 (S3 데이터 쿼리)
+상황: 데이터 분석 팀이 데이터베이스 서버를 띄우지 않고, S3 버킷에 적재된 대량의 접속 로그(CSV 포맷)를 즉시 SQL로 조회하고자 합니다.
+요구사항:
+
+리전: us-east-1 (버지니아 북부)
+
+제공된 원본 데이터 버킷 <Data_Bucket_Name>에 있는 users.csv 파일을 기반으로 Amazon Athena를 구성하시오.
+
+Athena에서 쿼리 결과가 저장될 S3 버킷 <Query_Result_Bucket>을 쿼리 결과 위치로 지정하시오.
+
+Athena 쿼리 편집기를 사용하여 worldpay_db라는 데이터베이스를 만들고, CSV 구조에 맞는 user_logs 외부 테이블(External Table)을 생성하는 DDL 쿼리를 작성하여 실행하시오.
+
+[채점 기준] 테이블 생성 후 SELECT * FROM user_logs LIMIT 10; 쿼리가 오류 없이 실행되어야 합니다.
+
+[문제 3] Fine-grained IAM policy (세밀한 IAM 정책)
+상황: 신규 입사자에게 S3 접근 권한을 주어야 하지만, 보안 지침상 모든 버킷이 아닌 특정 버킷에만, 그것도 '읽기' 권한만 부여해야 합니다.
+요구사항:
+
+리전: 글로벌 (IAM)
+
+AWS IAM 콘솔에서 직접 JSON 편집기를 사용하여 사용자 정의 정책(Customer Managed Policy)을 생성하시오.
+
+해당 정책은 <Target_Bucket_Name> 버킷과 그 내부의 객체에 대해서만 s3:ListBucket 및 s3:GetObject 작업(Action)을 허용(Allow)해야 합니다.
+
+생성한 정책을 문제에서 제공된 <Junior_Developer_Role>에 연결하시오.
+
+[채점 기준] 와일드카드(*)를 사용하여 불필요한 리소스나 권한이 허용된 경우 0점 처리됩니다. ARN(Amazon Resource Name)을 정확히 명시해야 합니다.
+
+[문제 4] MySQL with Lambda (Lambda와 MySQL 연동)
+상황: 백엔드 개발 팀이 서버리스 환경을 구축 중입니다. AWS Lambda 함수를 호출했을 때, 프라이빗 서브넷에 있는 RDS(MySQL)에 접속하여 데이터를 조회해 와야 합니다.
+요구사항:
+
+리전: ap-northeast-2 (서울)
+
+제공된 파이썬 코드(lambda_function.py)를 사용하여 AWS Lambda 함수를 생성하시오. (런타임: Python 3.x)
+
+Lambda 함수가 프라이빗 환경의 RDS 인스턴스에 접속할 수 있도록, Lambda의 VPC, 서브넷, 보안 그룹 설정을 RDS와 통신이 가능하게 구성하시오.
+
+코드에서 사용할 DB 접속 정보(Endpoint, User, Password)는 Lambda의 **환경 변수(Environment Variables)**에 등록하여 코드 내에서 호출하도록 구성하시오.
+
+[채점 기준] 심사위원이 Cloud Shell에서 AWS CLI를 통해 해당 Lambda 함수를 invoke(호출) 했을 때, DB 쿼리 결과가 정상적으로 리턴되어야 합니다. (Time out 발생 시 네트워크 설정 오류로 간주하여 감점)
